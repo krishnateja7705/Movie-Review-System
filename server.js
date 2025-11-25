@@ -2,41 +2,73 @@ const express = require("express");
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 const path = require("path");
+
 const Review = require("./models/Review");
 
 const app = express();
 
-// Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-// Connect to MongoDB
-mongoose.connect("mongodb://localhost:27017/moviereviewDB", {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
+// ----------------------------------
+// ✅ CONNECT TO MONGODB ATLAS
+// ----------------------------------
+const MONGO_URI = process.env.MONGO_URI || 
+  "mongodb+srv://movieAdmin:7IOHrggDVAUEFzoo@cluster0.mjh5ffi.mongodb.net/moviereviewDB?retryWrites=true&w=majority&appName=Cluster0";
 
-// Routes
+mongoose
+  .connect(MONGO_URI)
+  .then(() => console.log("✅ Connected to MongoDB Atlas"))
+  .catch((err) => console.log("❌ MongoDB Connection Error:", err));
+
+// ----------------------------------
+// ✅ ROUTES
+// ----------------------------------
+
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-// API route to fetch all reviews
 app.get("/reviews", async (req, res) => {
-  const reviews = await Review.find().sort({ _id: -1 });
-  res.json(reviews);
+  try {
+    const reviews = await Review.find().sort({ createdAt: -1 });
+    res.json(reviews);
+  } catch (err) {
+    console.error("❌ Error fetching reviews:", err.message);
+    res.status(500).send("Error fetching reviews");
+  }
 });
 
-// Route to add a new review
 app.post("/add", async (req, res) => {
-  const newReview = new Review({
-    movie: req.body.movie,
-    rating: req.body.rating,
-    comment: req.body.comment,
-  });
-  await newReview.save();
-  res.redirect("/");
+  console.log("📩 Received form data:", req.body);
+
+  try {
+    const { movie, rating, comment } = req.body;
+
+    if (!movie || !rating || !comment) {
+      return res.status(400).send("❌ All fields are required");
+    }
+
+    await Review.create({
+      movie: movie,
+      rating: Number(rating),
+      comment: comment,
+    });
+
+    console.log("✅ Review saved successfully!");
+    res.redirect("/");
+  } catch (err) {
+    console.error("❌ Error saving review:", err.message);
+    res.status(400).send("Error saving review");
+  }
 });
 
-// Start the server
-app.listen(3000, () => console.log("🎬 Server running on http://localhost:3000"));
+// ----------------------------------
+// ✅ START SERVER
+// ----------------------------------
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log(`🎬 Server running at http://localhost:${PORT}`);
+});
