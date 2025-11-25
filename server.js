@@ -3,10 +3,12 @@ const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 const path = require("path");
 
+// Import Review model
 const Review = require("./models/Review");
 
 const app = express();
 
+// Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, "public")));
@@ -14,22 +16,25 @@ app.use(express.static(path.join(__dirname, "public")));
 // ----------------------------------
 // ✅ CONNECT TO MONGODB ATLAS
 // ----------------------------------
-const MONGO_URI = process.env.MONGO_URI || 
+const MONGO_URI =
+  process.env.MONGO_URI ||
   "mongodb+srv://movieAdmin:7IOHrggDVAUEFzoo@cluster0.mjh5ffi.mongodb.net/moviereviewDB?retryWrites=true&w=majority&appName=Cluster0";
 
 mongoose
   .connect(MONGO_URI)
   .then(() => console.log("✅ Connected to MongoDB Atlas"))
-  .catch((err) => console.log("❌ MongoDB Connection Error:", err));
+  .catch((err) => console.error("❌ MongoDB Connection Error:", err));
 
 // ----------------------------------
 // ✅ ROUTES
 // ----------------------------------
 
+// Serve homepage
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
+// Fetch all reviews
 app.get("/reviews", async (req, res) => {
   try {
     const reviews = await Review.find().sort({ createdAt: -1 });
@@ -40,6 +45,7 @@ app.get("/reviews", async (req, res) => {
   }
 });
 
+// Add new review
 app.post("/add", async (req, res) => {
   console.log("📩 Received form data:", req.body);
 
@@ -51,9 +57,9 @@ app.post("/add", async (req, res) => {
     }
 
     await Review.create({
-      movie: movie,
+      movie,
       rating: Number(rating),
-      comment: comment,
+      comment,
     });
 
     console.log("✅ Review saved successfully!");
@@ -72,3 +78,4 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🎬 Server running at http://localhost:${PORT}`);
 });
+
